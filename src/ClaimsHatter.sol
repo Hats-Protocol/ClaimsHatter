@@ -48,4 +48,30 @@ contract ClaimsHatterSingle is ClaimsHatterBase {
   }
 }
 
-contract ClaimsHatter { }
+contract ClaimsHatterMulti is ClaimsHatterBase {
+  error NotClaimable();
+  // The hat ids claimable via this contract
+  mapping(uint256 hatId => bool claimable) public claimableHats;
+
+  function makeClaimable(uint256 _hatId) external {
+    // caller must be an admin of _hatId to make it claimable by this contract
+    if (!HATS.isAdminOfHat(msg.sender, _hatId)) revert HatsErrors.NotAdmin(msg.sender, _hatId);
+    // this contract must also be an admin of _hatId to be able to mint it when claimed
+    if (!HATS.isAdminOfHat(address(this), _hatId)) revert HatsErrors.NotHatWearer();
+    // enable _hatId to be claimed
+    claimableHats[_hatId] = true;
+  }
+
+  function claim(uint256 _hatId) onlyClaimable(_hatId) external {
+    _claim(_hatId, msg.sender);
+  }
+
+  function claimFor(uint256 _hatId, address _wearer) onlyClaimable(_hatId) external {
+    _claim(_hatId, _wearer);
+  }
+
+  modifier onlyClaimable(uint256 _hatId) {
+    if (!claimableHats[_hatId]) revert NotClaimable();
+    _;
+  }
+}
