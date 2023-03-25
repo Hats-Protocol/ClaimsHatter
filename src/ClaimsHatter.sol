@@ -78,29 +78,34 @@ contract ClaimsHatterSingle is ClaimsHatterBase {
 
 contract ClaimsHatterMulti is ClaimsHatterBase {
   error NotClaimable();
+  error NotClaimableFor();
+
+  struct ClaimabilityData {
+    bool claimable; // claimable by an explicitly eligible wearer
+    bool claimableFor; // claimable by anybody for an explicitly eligible wearer
+  }
+
   // The hat ids claimable via this contract
+  mapping(uint256 hatId => ClaimabilityData) public claimableHats;
 
-  mapping(uint256 hatId => bool claimable) public claimableHats;
-
-  function makeClaimable(uint256 _hatId) external {
+  function makeClaimable(uint256 _hatId, bool _claimableFor) external {
     // caller must be an admin of _hatId to make it claimable by this contract
     if (!HATS.isAdminOfHat(msg.sender, _hatId)) revert HatsErrors.NotAdmin(msg.sender, _hatId);
     // this contract must also be an admin of _hatId to be able to mint it when claimed
     if (!HATS.isAdminOfHat(address(this), _hatId)) revert HatsErrors.NotHatWearer();
     // enable _hatId to be claimed
-    claimableHats[_hatId] = true;
+    claimableHats[_hatId].claimable = true;
+    // if desired, enable anybody to claim _hatId for an explicitly eligible wearer
+    if (_claimableFor) claimableHats[_hatId].claimableFor = true;
   }
 
-  function claim(uint256 _hatId) external onlyClaimable(_hatId) {
+  function claim(uint256 _hatId) external {
+    if (!claimableHats[_hatId].claimable) revert NotClaimable();
     _mint(_hatId, msg.sender);
   }
 
-  function claimFor(uint256 _hatId, address _wearer) external onlyClaimable(_hatId) {
+  function claimFor(uint256 _hatId, address _wearer) external {
+    if (!claimableHats[_hatId].claimableFor) revert NotClaimableFor();
     _mint(_hatId, _wearer);
-  }
-
-  modifier onlyClaimable(uint256 _hatId) {
-    if (!claimableHats[_hatId]) revert NotClaimable();
-    _;
   }
 }
