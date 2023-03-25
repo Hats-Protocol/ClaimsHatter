@@ -1,3 +1,3 @@
-# solidity-template
+# Claims Hatter
 
-Template repo for solidity projects
+A hatter contract enabling eligible wearers to claim a hat.
