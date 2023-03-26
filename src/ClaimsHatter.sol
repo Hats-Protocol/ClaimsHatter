@@ -110,6 +110,7 @@ contract ClaimsHatter {
     HATS.mintHat(_hatId, _wearer);
   }
 
+  // TODO do we need all this extra validation logic? Maybe calling the eligibility module directly is sufficient.
   /// @notice Internal function that checks if _wearer is explicitly eligible to wear _hatId
   /// @dev Explicit eligibility can only come from a mechanistic eligitibility module, ie a contract that implements IHatsEligibility
   /// @param _hatId The id of the hat to check
@@ -139,15 +140,13 @@ contract ClaimsHatter {
       }
       // returndata is invalid
       else {
-        // revert since _wearer is not explicitly eligible
-        revert HatsErrors.NotHatsEligibility();
+        // false since _wearer is not explicitly eligible
+        eligible = false;
       }
     } else {
-      // revert since _wearer is not explicitly eligible
-      revert HatsErrors.NotHatsEligibility();
+      // false since _wearer is not explicitly eligible
+      eligible = false;
     }
-    // if not in good standing, the wearer is never eligible (even if `eligible` is true)
-    if (!standing) eligible = false;
   }
 
   /*//////////////////////////////////////////////////////////////
