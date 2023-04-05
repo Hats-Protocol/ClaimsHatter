@@ -1,127 +1,159 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+// import { console2 } from "forge-std/Test.sol"; // remove before deploy
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
-import { HatsErrors } from "hats-protocol/Interfaces/HatsErrors.sol";
-
-/* 
-- TODO tests
-*/
+import { Clone } from "solady/utils/Clone.sol";
 
 /// @title ClaimsHatter
-/// @notice Contract that enables explicitly eligible wearers to self-mint (claim) hats
-/// @dev To function properly, this contract must wear an admin of the hat(s) to be claimed
-contract ClaimsHatter {
-  /// @notice Emmitted when attempting to claim a hat that is not claimable
-  error NotClaimable();
+/// @author Haberdasher Labs
+/// @notice Enables explicitly eligible wearers to self-mint (claim) a Hats Protocol hat
+/// @dev To function properly, this contract must wear an admin hat of the hat to be claimed
+contract ClaimsHatter is Clone {
+  /*//////////////////////////////////////////////////////////////
+                            CUSTOM ERRORS
+  //////////////////////////////////////////////////////////////*/
+
   /// @notice Emmitted when attempting to claim for another wearer a hat for which claiming for others is not enabled
-  error NotClaimableFor();
-
-  /// @notice Claimability configuration for a hat
-  struct ClaimabilityData {
-    bool claimable; // claimable by an explicitly eligible wearer
-    bool claimableFor; // claimable by anybody for an explicitly eligible wearer
-  }
-
-  /// @notice The hat ids claimable via this contract
-  mapping(uint256 hatId => ClaimabilityData claimability) public claimableHats;
-  /// @notice Hats Protocol interface
-  IHats public immutable HATS;
-
-  constructor() {
-    HATS = IHats(0x850f3384829D7bab6224D141AFeD9A559d745E3D); // v1.hatsprotocol.eth
-  }
+  error ClaimsHatter_NotClaimableFor();
+  /// @notice Emitted when attempting to call an admin-only function from a non-admin
+  error ClaimsHatter_NotHatAdmin();
+  /// @notice Emitted when attempting to claim a hat by or for a wearer who is not explicitly eligible
+  error ClaimsHatter_NotExplicitlyEligible();
 
   /*//////////////////////////////////////////////////////////////
-                    EXTERNAL & PUBLIC FUNCTIONS
+                                EVENTS
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Emitted when "claimability for" is enabled or disabled
+  event ClaimingForChanged(uint256 _hatId, bool _claimableFor);
+
+  /*//////////////////////////////////////////////////////////////
+                              CONSTANTS
   //////////////////////////////////////////////////////////////*/
 
   /**
-   * @notice Make a hat claimable by (and optionally for) an explicitly eligible wearer
-   * @dev The caller must be an admin of the hat, and this contract must also be an admin of the hat.
-   *  If this contract is NOT an admin of the hat, it will not be able to mint it when claimed.
-   *  To make this contract an admin of the hat, mint it an admin hat.
-   * @param _hatId The id of the hat to make claimable
-   * @param _claimableFor Whether to enable anybody to claim the hat for an explicitly eligible wearer
+   * This contract is a clone with immutable args, which means that it is deployed with a set of
+   * immutable storage variables (ie constants). Accessing these constants is cheaper than accessing 
+   * regular storage variables (such as those set on initialization of a typical EIP-1167 clone),
+   * but requires a slightly different approach since they are read from calldata instead of storage.
+   *  
+   * Below is a table of constants and their location.
+   *
+   * For more, see here: https://github.com/Saw-mon-and-Natalie/clones-with-immutable-args
+   *
+   * --------------------------------------------------------------------+
+   * CLONE IMMUTABLE "STORAGE"                                           |
+   * --------------------------------------------------------------------|
+   * Offset  | Constant | Type    | Length  |                            |
+   * --------------------------------------------------------------------|
+   * 0       | FACTORY  | address | 20      |                            |
+   * 20      | HATS     | address | 20      |                            |
+   * 40      | hat      | uint256 | 32      |                            |
+   * --------------------------------------------------------------------+
    */
-  function makeClaimable(uint256 _hatId, bool _claimableFor) external {
-    // caller must be an admin of _hatId to make it claimable by this contract
-    if (!HATS.isAdminOfHat(msg.sender, _hatId)) revert HatsErrors.NotAdmin(msg.sender, _hatId);
-    // this contract must also be an admin of _hatId to be able to mint it when claimed
-    if (!HATS.isAdminOfHat(address(this), _hatId)) revert HatsErrors.NotHatWearer();
-    // enable _hatId to be claimed
-    claimableHats[_hatId].claimable = true;
-    // if desired, enable anybody to claim _hatId for an explicitly eligible wearer
-    if (_claimableFor) claimableHats[_hatId].claimableFor = true;
+
+  /// @notice The address of the ClaimsHatterFactory that deployed this contract
+  function FACTORY() public pure returns (address) {
+    return _getArgAddress(0);
   }
 
+  /// @notice Hats Protocol address
+  function HATS() public pure returns (IHats) {
+    return IHats(_getArgAddress(20));
+  }
+
+  /// @notice The hat claimable via this contract
+  function hat() public pure returns (uint256) {
+    return _getArgUint256(40);
+  }
+
+  /*//////////////////////////////////////////////////////////////
+                            MUTABLE STATE
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Whether this hat is claimable on behalf of an explicitly eligible wearer
+  bool internal _claimableFor;
+
+  /*//////////////////////////////////////////////////////////////
+                           ADMIN FUNCTIONS
+  //////////////////////////////////////////////////////////////*/
+
   /**
-   * @notice Make a hat "claimable for" an explicitly eligible wearer, by anybody
+   * @notice Make the hat "claimable for" an explicitly eligible wearer, by anybody
    * @dev The caller must be an admin of the hat, this contract must also be an admin of the hat,
    *  and the hat must already be claimable.
    *  If this contract is NOT an admin of the hat, it will not be able to mint it when claimed.
    *  To make this contract an admin of the hat, mint it an admin hat.
-   * @param _hatId The id of the hat to enable "claiming for"
    */
-  function makeClaimableFor(uint256 _hatId) external {
-    // caller must be an admin of _hatId to make it claimable by this contract
-    if (!HATS.isAdminOfHat(msg.sender, _hatId)) revert HatsErrors.NotAdmin(msg.sender, _hatId);
-    // this contract must also be an admin of _hatId to be able to mint it when claimed
-    if (!HATS.isAdminOfHat(address(this), _hatId)) revert HatsErrors.NotHatWearer();
-    // _hatId must already be claimable, which includes this contract being an admin of it
-    if (!isClaimable(_hatId)) revert NotClaimable();
+  function enableClaimingFor() external onlyAdminOrFactory {
     // enable anybody to claim _hatId for an explicitly eligible wearer
-    claimableHats[_hatId].claimableFor = true;
+    _claimableFor = true;
+    // log the change
+    emit ClaimingForChanged(hat(), true);
   }
 
   /**
-   * @notice Claim a hat
+   * @notice Make the hat unclaimable on behalf of an explicitly eligible wearer
+   * @dev The caller must be an admin of the hat
+   */
+  function disableClaimingFor() external onlyAdmin {
+    // disable anybody from claiming _hatId for an explicitly eligible wearer
+    _claimableFor = false;
+    // log the change
+    emit ClaimingForChanged(hat(), false);
+  }
+
+  /*//////////////////////////////////////////////////////////////
+                          CLAIMING FUNCTIONS
+  //////////////////////////////////////////////////////////////*/
+
+  /**
+   * @notice Claim the hat
    * @dev The caller must be explicitly eligible to wear the hat, and the hat must be claimable.
-   *  This contract must also be an admin of the hat, or the mint will fail.
-   * @param _hatId The id of the hat to claim
+   *  This contract must also wear an admin hat of the claimed hat, or the claim will fail.
    */
-  function claim(uint256 _hatId) external {
-    if (!isClaimable(_hatId)) revert NotClaimable();
-    _mint(_hatId, msg.sender);
+  function claimHat() external {
+    _mint(msg.sender);
   }
 
   /**
-   * @notice Claim a hat for an explicitly eligible wearer
-   * @dev The hat must be claimable. This contract must also be an admin of the hat, or the mint will fail.
-   * @param _hatId The id of the hat to claim
-   * @param _wearer The address of the would-be wearer
+   * @notice Claim the hat for an explicitly eligible wearer
+   * @dev claimingFor must be allowed. This contract must also wear an admin hat of the claimed hat, or the claim will fail.
+   * @param _wearer The address on whose behalf to claim the hat
    */
-  function claimFor(uint256 _hatId, address _wearer) external {
-    if (!isClaimableFor(_hatId)) revert NotClaimableFor();
-    _mint(_hatId, _wearer);
+  function claimHatFor(address _wearer) external {
+    if (!_claimableFor) revert ClaimsHatter_NotClaimableFor();
+    _mint(_wearer);
   }
 
   /*//////////////////////////////////////////////////////////////
                           INTERNAL FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice Internal function that mints a _hat for an explicitly eligible _wearer
-  /// @param _hatId The id of the hat to mint
-  /// @param _wearer The address of the would-be wearer
-  function _mint(uint256 _hatId, address _wearer) internal {
+  /**
+   * @notice Internal function that mints a _hat for an explicitly eligible _wearer
+   * @param _wearer The address of the would-be wearer
+   */
+  function _mint(address _wearer) internal {
     // revert if _wearer is not explicitly eligible
-    if (!_isEligible(_hatId, _wearer)) revert HatsErrors.NotEligible();
+    if (!_isExplicitlyEligible(_wearer)) revert ClaimsHatter_NotExplicitlyEligible();
     // mint the hat to _wearer if eligible. This contract can mint as long as its the hat's admin.
-    HATS.mintHat(_hatId, _wearer);
+    HATS().mintHat(hat(), _wearer);
   }
 
-  // TODO do we need all this extra validation logic? Maybe calling the eligibility module directly is sufficient.
-  /// @notice Internal function that checks if _wearer is explicitly eligible to wear _hatId
-  /// @dev Explicit eligibility can only come from a mechanistic eligitibility module, ie a contract that implements IHatsEligibility
-  /// @param _hatId The id of the hat to check
-  /// @param _wearer The address of the would-be wearer to check for eligibility
-  function _isEligible(uint256 _hatId, address _wearer) internal view returns (bool eligible) {
+  /**
+   * @notice Checks if _wearer is explicitly eligible to wear the hat.
+   * @dev Explicit eligibility can only come from a mechanistic eligitibility module, ie a contract that implements IHatsEligibility
+   * @param _wearer The address of the would-be wearer to check for eligibility
+   */
+  function _isExplicitlyEligible(address _wearer) internal view returns (bool eligible) {
     // get the hat's eligibility module address
-    (,,, address eligibility,,,,,) = HATS.viewHat(_hatId);
+    address eligibility = HATS().getHatEligibilityModule(hat());
     // get _wearer's eligibility status from the eligibility module
     bool standing;
     (bool success, bytes memory returndata) =
-      eligibility.staticcall(abi.encodeWithSignature("getWearerStatus(address,uint256)", _wearer, _hatId));
+      eligibility.staticcall(abi.encodeWithSignature("getWearerStatus(address,uint256)", _wearer, hat()));
 
     /* 
     * if function call succeeds with data of length == 64, then we know the contract exists 
@@ -153,17 +185,45 @@ contract ClaimsHatter {
                           VIEW FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice View function that checks if a hat is claimable
-  /// @param _hatId The id of the hat to check
-  /// @return claimable True if the hat is claimable
-  function isClaimable(uint256 _hatId) public view returns (bool claimable) {
-    claimable = claimableHats[_hatId].claimable;
+  /// @notice Whether the hat is claimable
+  /// @dev Requires that this contract wears an admin hat
+  function claimable() public view returns (bool) {
+    return (hatExists() && wearsAdmin());
   }
 
-  /// @notice View function that checks if a hat is claimable for an explicitly eligible wearer
-  /// @param _hatId The id of the hat to check
-  /// @return claimableFor True if the hat is "claimable for"
-  function isClaimableFor(uint256 _hatId) public view returns (bool claimableFor) {
-    claimableFor = claimableHats[_hatId].claimableFor;
+  /// @notice Whether the hat is claimable on behalf of an explicitly eligible wearer
+  /// @dev Requires that this contract wears an admin hat
+  function claimableFor() public view returns (bool) {
+    return (_claimableFor && hatExists() && wearsAdmin());
+  }
+
+  /// @notice Whether this contract wears an admin hat of the hat to claim
+  function wearsAdmin() public view returns (bool) {
+    return HATS().isAdminOfHat(address(this), hat());
+  }
+
+  /// @notice Whether the hat to claim exists
+  function hatExists() public view returns (bool) {
+    return HATS().getHatMaxSupply(hat()) > 0;
+  }
+
+  /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Ensure caller is either an admin of the hat, or the factory that deployed this contract
+  /// @dev If the factory is the caller, the caller of *that* function must have been an admin of the hat
+  modifier onlyAdminOrFactory() {
+    if (!HATS().isAdminOfHat(msg.sender, hat()) && msg.sender != FACTORY()) {
+      // Only admins can call via the factory, so this error is always relevant
+      revert ClaimsHatter_NotHatAdmin();
+    }
+    _;
+  }
+
+  /// @notice Ensure caller is an admin of the hat
+  modifier onlyAdmin() {
+    if (!HATS().isAdminOfHat(msg.sender, hat())) revert ClaimsHatter_NotHatAdmin();
+    _;
   }
 }
