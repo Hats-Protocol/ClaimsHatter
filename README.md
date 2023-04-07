@@ -1,19 +1,19 @@
 # ClaimsHatter
 
-A Hats Protocol hatter contract enabling explictly eligible wearers to claim a hat.
+A Hats Protocol hatter contract enabling explicitly eligible wearers to claim a hat.
 
 ## Overview & Usage
 
-In [Hats Protocol](https://github.com/hats-protocol/hats-protocol), hats are typically issued by admins minting them to wearers. While often that is the desired behavior, there are cases where it is desirable to allow wearers to claim a hat themselves, assuming they are eligibile to wear them. ClaimsHatter enables DAOs to optionally make hats claimable by eligible wearers.
+In [Hats Protocol](https://github.com/hats-protocol/hats-protocol), hats are typically issued by admins minting them to wearers. While often that is the desired behavior, there are cases where it is desirable to allow wearers to claim a hat themselves, assuming they are eligible to wear them. ClaimsHatter enables DAOs to optionally make hats claimable by eligible wearers.
 
 Making a hat claimable via ClaimsHatter involves the following steps:
 
-0. Prerequisits and setup
+0. Prerequisites and setup
 1. Create a new instance of ClaimsHatter for the hat to claim
 2. Mint or transfer an admin hat of the claimable hat to the ClaimsHatter instance from (1)
 3. Eligible wearer(s) can now claim the hat
 
-### Step 0: Prerequisits and setup
+### Step 0: Prerequisites and setup
 
 Making a hat claimable via ClaimsHatter includes a couple prerequisites.
 
@@ -57,7 +57,7 @@ ClaimsHatterFactory is a clone factory that enables cheap creation of new instan
 
 ### Step 2: Mint or transfer an admin hat of the claimable hat to the ClaimsHatter instance
 
-ClaimsHatter is a "hatter" contract, which is a type of contract desiged to wear an admin hat. When wearing an admin hat (such as the "Hatter Hat" in the second diagram above), it gains admin authorities over the child hat(s) below it (such as the "Role Hat"). In ClaimsHatter's case, this includes the ability to mint those hat(s).
+ClaimsHatter is a "hatter" contract, which is a type of contract designed to wear an admin hat. When wearing an admin hat (such as the "Hatter Hat" in the second diagram above), it gains admin authorities over the child hat(s) below it (such as the "Role Hat"). In ClaimsHatter's case, this includes the ability to mint those hat(s).
 
 To enable ClaimsHatter to mint hats, it must be wearing an admin hat of the hat to claim. This can be done by minting (or transferring, as relevant) the admin hat to the ClaimsHatter instance.
 
