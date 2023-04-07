@@ -134,12 +134,13 @@ contract ClaimsHatterFactory {
    * @notice Calculates the salt to use when deploying the clone. The (packed) inputs are:
    *  - The address of the Hats Protocol contract, `HATS` (passed as part of `_args`)
    *  - The`_hatId` (passed as part of `_args`)
-   *  - The chain ID // TODO is this necessary?
+   *  - The chain ID of the current network, to avoid confusion across networks since the same hat trees
+   *    on different networks may have different wearers/admins
    * @dev
    * @param _args The encoded arguments to pass to the clone as immutable storage
    * @return The salt to use when deploying the clone
    */
-  function _calculateSalt(bytes memory _args) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(_args));
+  function _calculateSalt(bytes memory _args) internal view returns (bytes32) {
+    return keccak256(abi.encodePacked(_args, block.chainid));
   }
 }

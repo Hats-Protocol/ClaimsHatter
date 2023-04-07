@@ -83,7 +83,7 @@ contract Internal_encodeArgs is InternalTest {
 
 contract Internal_calculateSalt is InternalTest {
   function test_fuzz_calculateSalt(bytes memory _args) public {
-    assertEq(harness.calculateSalt(_args), keccak256(abi.encodePacked(_args)), "calculateSalt");
+    assertEq(harness.calculateSalt(_args), keccak256(abi.encodePacked(_args, block.chainid)), "calculateSalt");
   }
 
   function test_calculateSalt_0() public {
@@ -162,7 +162,7 @@ contract GetClaimsHatterAddress is ClaimsHatterFactoryTest {
   function test_fuzz_getClaimsHatterAddress(uint256 _hatId) public {
     bytes memory args = abi.encodePacked(address(factory), address(hats), _hatId);
     address expected = LibClone.predictDeterministicAddress(
-      address(implementation), args, keccak256(abi.encodePacked(args)), address(factory)
+      address(implementation), args, keccak256(abi.encodePacked(args, block.chainid)), address(factory)
     );
     assertEq(factory.getClaimsHatterAddress(_hatId), expected);
   }
