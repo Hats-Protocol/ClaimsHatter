@@ -13,7 +13,7 @@ Making a hat claimable via ClaimsHatter involves the following steps:
 2. Mint or transfer an admin hat of the claimable hat to the ClaimsHatter instance from (1)
 3. Eligible wearer(s) can now claim the hat
 
-### Step 0: Prerequisits and setup
+### Step 0: Prerequisites and setup
 
 Making a hat claimable via ClaimsHatter includes a couple prerequisites.
 

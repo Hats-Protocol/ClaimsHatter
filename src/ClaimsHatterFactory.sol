@@ -5,7 +5,6 @@ pragma solidity ^0.8.18;
 import { ClaimsHatter } from "src/ClaimsHatter.sol";
 import { LibClone } from "solady/utils/LibClone.sol";
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
-import { HatsErrors } from "hats-protocol/Interfaces/HatsErrors.sol";
 
 contract ClaimsHatterFactory {
   /*//////////////////////////////////////////////////////////////
@@ -27,9 +26,11 @@ contract ClaimsHatterFactory {
   //////////////////////////////////////////////////////////////*/
 
   /// @notice The address of the ClaimsHatter implementation
-  ClaimsHatter public immutable implementation;
+  ClaimsHatter public immutable IMPLEMENTATION;
   /// @notice The address of Hats Protocol
   IHats public immutable HATS;
+  /// @notice The version of this ClaimsHatterFactory
+  string public version;
 
   /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -39,9 +40,10 @@ contract ClaimsHatterFactory {
    * @param _implementation The address of the ClaimsHatter implementation
    * @param _hats The address of Hats Protocol
    */
-  constructor(ClaimsHatter _implementation, IHats _hats) {
-    implementation = _implementation;
+  constructor(ClaimsHatter _implementation, IHats _hats, string memory _version) {
+    IMPLEMENTATION = _implementation;
     HATS = _hats;
+    version = _version;
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -103,7 +105,7 @@ contract ClaimsHatterFactory {
     // calculate the determinstic address salt as the hash of the _hatId and the Hats Protocol address
     bytes32 _salt = _calculateSalt(args);
     // deploy the clone to the deterministic address
-    _instance = ClaimsHatter(LibClone.cloneDeterministic(address(implementation), args, _salt));
+    _instance = ClaimsHatter(LibClone.cloneDeterministic(address(IMPLEMENTATION), args, _salt));
     // log the deployment
     emit ClaimsHatterDeployed(_hatId, address(_instance));
   }
@@ -115,7 +117,7 @@ contract ClaimsHatterFactory {
    * @return The predicted address of the deployed ClaimsHatter
    */
   function _getClaimsHatterAddress(bytes memory _arg, bytes32 _salt) internal view returns (address) {
-    return LibClone.predictDeterministicAddress(address(implementation), _arg, _salt, address(this));
+    return LibClone.predictDeterministicAddress(address(IMPLEMENTATION), _arg, _salt, address(this));
   }
 
   /**

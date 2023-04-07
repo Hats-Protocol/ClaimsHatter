@@ -2,19 +2,25 @@
 pragma solidity ^0.8.13;
 
 import { Test, console2 } from "forge-std/Test.sol";
-import { DeployImplementation, DeployFactory } from "script/ClaimsHatter.s.sol";
+import { DeployFactory } from "script/ClaimsHatter.s.sol";
 import { ClaimsHatter } from "src/ClaimsHatter.sol";
 import { ClaimsHatterFactory } from "src/ClaimsHatterFactory.sol";
 import { LibClone } from "solady/utils/LibClone.sol";
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
 
 contract ClaimsHatterFactoryTest is Test, DeployFactory {
-  // address public hats; // hats address inherited from DeployFactory
+  // variables inhereted from DeployFactory script
+  // address public implementation;
+  // address public factory;
+  // address public hats;
+
+  // other variables for testing
   uint256 public fork;
   uint256 public topHat1 = 0x0000000100000000000000000000000000000000000000000000000000000000;
   uint256 public hat1 = 0x0000000100010000000000000000000000000000000000000000000000000000;
   bytes32 maxBytes32 = bytes32(type(uint256).max);
   bytes largeBytes = abi.encodePacked("this is a fairly large bytes object");
+  string public constant VERSION = "this is a test";
 
   event ClaimsHatterDeployed(uint256 hatId, address instance);
 
@@ -24,23 +30,32 @@ contract ClaimsHatterFactoryTest is Test, DeployFactory {
     fork = vm.createFork(vm.envString("ETHEREUM_RPC"), 16_947_805);
     // use the fork (Luke)
     vm.selectFork(fork);
-    // deploy the implementation
-    implementation = new ClaimsHatter();
-    // deploy the clone factory pointing to the implementation
-    DeployFactory.prepare(implementation);
+    // deploy the clone factory and the implementation contract
+    DeployFactory.prepare(VERSION);
     DeployFactory.run();
+  }
+}
+
+contract Deploy is ClaimsHatterFactoryTest {
+  function test_deploy() public {
+    assertEq(address(factory.HATS()), address(hats), "hats");
+    assertEq(address(factory.IMPLEMENTATION()), address(implementation), "implementation");
+    assertEq(implementation.version(), VERSION, "version");
+    assertEq(factory.version(), VERSION, "factory version");
   }
 }
 
 /// @notice Harness contract to test ClaimsHatterFactory's internal functions
 contract FactoryHarness is ClaimsHatterFactory {
-  constructor(ClaimsHatter _implementation, IHats _hats) ClaimsHatterFactory(_implementation, _hats) { }
+  constructor(ClaimsHatter _implementation, IHats _hats, string memory _version)
+    ClaimsHatterFactory(_implementation, _hats, _version)
+  { }
 
   function encodeArgs(uint256 _hatId) public view returns (bytes memory) {
     return _encodeArgs(_hatId);
   }
 
-  function calculateSalt(bytes memory args) public pure returns (bytes32) {
+  function calculateSalt(bytes memory args) public view returns (bytes32) {
     return _calculateSalt(args);
   }
 
@@ -59,7 +74,7 @@ contract InternalTest is ClaimsHatterFactoryTest {
   function setUp() public virtual override {
     super.setUp();
     // deploy harness
-    harness = new FactoryHarness(implementation, hats);
+    harness = new FactoryHarness(implementation, hats, "this is a test harness");
   }
 }
 
@@ -141,7 +156,7 @@ contract CreateClaimsHatter is ClaimsHatterFactoryTest {
     emit ClaimsHatterDeployed(_hatId, factory.getClaimsHatterAddress(_hatId));
     ClaimsHatter hatter = factory.createClaimsHatter(_hatId);
     assertEq(hatter.hat(), _hatId, "hat");
-    assertEq(hatter.FACTORY(), address(factory), "FACTORY");
+    assertEq(address(hatter.FACTORY()), address(factory), "FACTORY");
     assertEq(address(hatter.HATS()), address(hats), "HATS");
     assertFalse(hatter.claimable(), "claimable");
     assertFalse(hatter.claimableFor(), "claimableFor");

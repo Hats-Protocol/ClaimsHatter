@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 
 // import { console2 } from "forge-std/Test.sol"; // remove before deploy
+import { ClaimsHatterFactory } from "src/ClaimsHatterFactory.sol";
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
 import { Clone } from "solady/utils/Clone.sol";
 
@@ -34,10 +35,10 @@ contract ClaimsHatter is Clone {
 
   /**
    * This contract is a clone with immutable args, which means that it is deployed with a set of
-   * immutable storage variables (ie constants). Accessing these constants is cheaper than accessing 
+   * immutable storage variables (ie constants). Accessing these constants is cheaper than accessing
    * regular storage variables (such as those set on initialization of a typical EIP-1167 clone),
    * but requires a slightly different approach since they are read from calldata instead of storage.
-   *  
+   *
    * Below is a table of constants and their location.
    *
    * For more, see here: https://github.com/Saw-mon-and-Natalie/clones-with-immutable-args
@@ -54,8 +55,8 @@ contract ClaimsHatter is Clone {
    */
 
   /// @notice The address of the ClaimsHatterFactory that deployed this contract
-  function FACTORY() public pure returns (address) {
-    return _getArgAddress(0);
+  function FACTORY() public pure returns (ClaimsHatterFactory) {
+    return ClaimsHatterFactory(_getArgAddress(0));
   }
 
   /// @notice Hats Protocol address
@@ -68,12 +69,33 @@ contract ClaimsHatter is Clone {
     return _getArgUint256(40);
   }
 
+  ///
+  string internal _version;
+
+  /// @notice The version of this ClaimsHatter
+  function version() public view returns (string memory version_) {
+    // If the factory is set (ie this is a clone), use its version
+    if (address(FACTORY()) != address(0)) return FACTORY().version();
+    // Otherwise (ie this is the implementation contract), use the version from storage
+    else return _version;
+  }
+
   /*//////////////////////////////////////////////////////////////
                             MUTABLE STATE
   //////////////////////////////////////////////////////////////*/
 
   /// @notice Whether this hat is claimable on behalf of an explicitly eligible wearer
   bool internal _claimableFor;
+
+  /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Deploy the ClaimsHatter implementation contract and set its `_version`
+  /// @dev This is only used to deploy the implementation contract, and should not be used to deploy clones
+  constructor(string memory __version) {
+    _version = __version;
+  }
 
   /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
@@ -197,6 +219,16 @@ contract ClaimsHatter is Clone {
     return (_claimableFor && hatExists() && wearsAdmin());
   }
 
+  /// @notice Whether the hat can be claimed on behalf of `_wearer`, specifically
+  function claimableFor(address _wearer) public view returns (bool) {
+    return (claimableFor() && _isExplicitlyEligible(_wearer));
+  }
+
+  /// @notice Whether `_wearer` can claim the hat
+  function claimableBy(address _wearer) public view returns (bool) {
+    return (claimable() && _isExplicitlyEligible(_wearer));
+  }
+
   /// @notice Whether this contract wears an admin hat of the hat to claim
   function wearsAdmin() public view returns (bool) {
     return HATS().isAdminOfHat(address(this), hat());
@@ -214,7 +246,7 @@ contract ClaimsHatter is Clone {
   /// @notice Ensure caller is either an admin of the hat, or the factory that deployed this contract
   /// @dev If the factory is the caller, the caller of *that* function must have been an admin of the hat
   modifier onlyAdminOrFactory() {
-    if (!HATS().isAdminOfHat(msg.sender, hat()) && msg.sender != FACTORY()) {
+    if (!HATS().isAdminOfHat(msg.sender, hat()) && msg.sender != address(FACTORY())) {
       // Only admins can call via the factory, so this error is always relevant
       revert ClaimsHatter_NotHatAdmin();
     }

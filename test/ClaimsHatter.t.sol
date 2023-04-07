@@ -63,6 +63,8 @@ contract HatCreatedTest is ClaimsHatterTest {
 }
 
 contract ClaimsHatterHarness is ClaimsHatter {
+  constructor() ClaimsHatter("this is a test harness") { }
+
   function mint(address _wearer) public {
     _mint(_wearer);
   }
@@ -166,6 +168,15 @@ contract _onlyAdmin is InternalTest {
     vm.prank(claimer1); // claimer does not wear the admin hat (top hat)
     vm.expectRevert(ClaimsHatter_NotHatAdmin.selector);
     harness.checkOnlyAdmin();
+  }
+}
+
+contract Deploy is ClaimsHatterTest {
+  function test_deploy() public {
+    assertEq(hatter.version(), VERSION);
+    assertEq(hatter.hat(), claimerHat1);
+    assertEq(address(hatter.HATS()), address(hats));
+    assertEq(address(hatter.FACTORY()), address(factory));
   }
 }
 
@@ -315,6 +326,16 @@ contract ViewFunctions is ClaimsHatterTest {
     assertFalse(hatter.wearsAdmin());
   }
 
+  function test_hatExists() public {
+    // hatExists starts out as false since claimerHat1 doesn't exist yet
+    assertFalse(hatter.hatExists());
+    // create claimerHat1
+    vm.prank(admin1);
+    hats.createHat(hatterHat1, "claimerHat1", 2, eligibility, address(1), true, "");
+    // now it should be true
+    assertTrue(hatter.hatExists());
+  }
+
   function test_claimable() public {
     // claimable starts out as false since hatter does not yet wear hatterHat1
     assertFalse(hatter.claimable());
@@ -358,5 +379,45 @@ contract ViewFunctions is ClaimsHatterTest {
     hatter.disableClaimingFor();
     // now it should be false again
     assertFalse(hatter.claimableFor());
+  }
+
+  function test_claimableByWearer() public {
+    // claimableBy starts out as false
+    assertFalse(hatter.claimableBy(claimer1));
+    // we need to ...
+    // a) create the claimerHat1 hat
+    vm.prank(admin1);
+    hats.createHat(hatterHat1, "claimerHat1", 2, eligibility, address(1), true, "");
+    assertFalse(hatter.claimableBy(claimer1));
+    // b) mint hatterHat1 to hatter
+    vm.prank(admin1);
+    hats.mintHat(hatterHat1, address(hatter));
+    assertFalse(hatter.claimableBy(claimer1));
+    // c) and ensure that claimer1 is eligible for claimerHat1
+    mockEligibityCall(claimer1, claimerHat1, true, true);
+    // now it should be true
+    assertTrue(hatter.claimableBy(claimer1));
+  }
+
+  function test_claimableForWearer() public {
+    // claimableBy starts out as false
+    assertFalse(hatter.claimableFor(claimer1));
+    // we need to ...
+    // a) create the claimerHat1 hat
+    vm.prank(admin1);
+    hats.createHat(hatterHat1, "claimerHat1", 2, eligibility, address(1), true, "");
+    assertFalse(hatter.claimableFor(claimer1));
+    // b) mint hatterHat1 to hatter
+    vm.prank(admin1);
+    hats.mintHat(hatterHat1, address(hatter));
+    assertFalse(hatter.claimableFor(claimer1));
+    // c) and ensure that claimer1 is eligible for claimerHat1
+    mockEligibityCall(claimer1, claimerHat1, true, true);
+    assertFalse(hatter.claimableFor(claimer1));
+    // d) and enable claiming for
+    vm.prank(admin1);
+    hatter.enableClaimingFor();
+    // now it should be true
+    assertTrue(hatter.claimableFor(claimer1));
   }
 }
