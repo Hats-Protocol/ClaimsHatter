@@ -3,7 +3,7 @@ name: Report gas diff
 on:
   push:
     branches:
-      # - main
+      - main
   pull_request:
     # Optionally configure to run only for changes in specific files. For example:
     paths:
@@ -17,6 +17,7 @@ env:
   FOUNDRY_PROFILE: "lite"
   INFURA_KEY: ${{ secrets.INFURA_KEY }}
   ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+  ETH_RPC: ${{ secrets.ETH_RPC }}
   GC_RPC: ${{ secrets.GC_RPC }}
   POLYGON_RPC: ${{ secrets.POLYGON_RPC }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}

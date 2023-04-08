@@ -3,14 +3,15 @@ name: ci
 on:
   push:
     branches:
-      # - main
+      - main
   pull_request:
   workflow_dispatch:
 
 env:
-  FOUNDRY_PROFILE: "lite"
+  FOUNDRY_PROFILE: lite
   INFURA_KEY: ${{ secrets.INFURA_KEY }}
   ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+  ETH_RPC: ${{ secrets.ETH_RPC }}
   GC_RPC: ${{ secrets.GC_RPC }}
   POLYGON_RPC: ${{ secrets.POLYGON_RPC }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
@@ -28,7 +29,7 @@ jobs:
         with:
           args: "**/*.md"
   test:
-    name: Foundry fmt, build, and test
+    name: "Foundry tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -37,14 +38,14 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        # with:
-          # version: nightly
+        with:
+          version: nightly
 
       - name: Check formatting
         run: forge fmt --check
       
       - name: Check contract sizes
-        run: forge build --sizes --skip script
+        run: forge build --sizes
 
       - name: Run tests
         run: forge test -vvv
