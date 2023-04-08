@@ -27,9 +27,9 @@ contract ClaimsHatterFactoryTest is Test, DeployFactory {
   error ClaimsHatterFactory_AlreadyDeployed(uint256 hatId);
 
   function setUp() public virtual {
-    fork = vm.createFork(vm.envString("ETHEREUM_RPC"), 16_947_805);
-    // use the fork (Luke)
-    vm.selectFork(fork);
+    // create and activate a mainnet fork, at the block number where v1.hatsprotocol.eth was deployed
+    fork = vm.createSelectFork("mainnet", 16_947_805);
+
     // deploy the clone factory and the implementation contract
     DeployFactory.prepare(VERSION);
     DeployFactory.run();

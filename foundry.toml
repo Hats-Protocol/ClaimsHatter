@@ -34,17 +34,17 @@ tab_width = 2
 wrap_comments = false
 
 [rpc_endpoints]
-# arbitrum = "${ARBITRUM_RPC}"
+arbitrum = "https://arbitrum-mainnet.infura.io/v3/${INFURA_KEY}"
 gnosis = "${GC_RPC}"
-goerli = "${GOERLI_RPC}"
+goerli = "https://goerli.infura.io/v3/${INFURA_KEY}"
 local = "http://localhost:8545"
-mainnet = "${ETHEREUM_RPC}"
-optimism = "${OPTIMISM_RPC}"
+mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
+optimism = "https://optimism-mainnet.infura.io/v3/${INFURA_KEY}"
 polygon = "${POLYGON_RPC}"
-sepolia = "${SEPOLIA_RPC}"
+sepolia = "https://sepolia.infura.io/v3/${INFURA_KEY}"
 
 [etherscan]
-# arbitrum = {key = "${ARBISCAN_KEY}", url = "https://api.arbiscan.io/api"}
+arbitrum = {key = "${ARBISCAN_KEY}", url = "https://api.arbiscan.io/api"}
 goerli = {key = "${ETHERSCAN_KEY}", url = "https://api-goerli.etherscan.io/api"}
 gnosis = {key = "${GNOSISSCAN_KEY}", url = "https://api.gnosisscan.io/api"}
 mainnet = {key = "${ETHERSCAN_KEY}", url = "https://api.etherscan.io/api"}
