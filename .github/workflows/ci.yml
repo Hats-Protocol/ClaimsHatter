@@ -11,7 +11,6 @@ env:
   FOUNDRY_PROFILE: lite
   INFURA_KEY: ${{ secrets.INFURA_KEY }}
   ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
-  ETH_RPC: ${{ secrets.ETH_RPC }}
   GC_RPC: ${{ secrets.GC_RPC }}
   POLYGON_RPC: ${{ secrets.POLYGON_RPC }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
@@ -45,7 +44,7 @@ jobs:
         run: forge fmt --check
       
       - name: Check contract sizes
-        run: forge build --sizes
+        run: forge build --sizes --skip script
 
       - name: Run tests
         run: forge test -vvv
