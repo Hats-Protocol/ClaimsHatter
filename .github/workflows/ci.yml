@@ -44,6 +44,9 @@ jobs:
       - name: Check contract sizes
         run: forge build --sizes --skip script
 
+      - name: Source env
+        run: source .env
+
       - name: Run tests
         run: forge test -vvv
 
