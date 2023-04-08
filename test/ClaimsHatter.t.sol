@@ -416,6 +416,7 @@ contract ViewFunctions is ClaimsHatterTest {
     assertFalse(hatter.claimableFor(claimer1));
     // d) and enable claiming for
     vm.prank(admin1);
+
     hatter.enableClaimingFor();
     // now it should be true
     assertTrue(hatter.claimableFor(claimer1));
