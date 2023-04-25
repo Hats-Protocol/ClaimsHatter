@@ -14,8 +14,11 @@ on:
     - .github/workflows/foundry-gas-diff.yml
 
 env:
-  FOUNDRY_PROFILE: default
+  FOUNDRY_PROFILE: ci
   INFURA_KEY: ${{ secrets.INFURA_KEY }}
+  ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+  GC_RPC: ${{ secrets.GC_RPC }}
+  POLYGON_RPC: ${{ secrets.POLYGON_RPC }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
 
 jobs:
