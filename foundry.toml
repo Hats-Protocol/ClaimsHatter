@@ -23,6 +23,8 @@ invariant = { runs = 10 }
 # Speed up compilation and tests during development.
 optimizer = false
 
+
+
 [fmt]
 bracket_spacing = true
 int_types = "long"
