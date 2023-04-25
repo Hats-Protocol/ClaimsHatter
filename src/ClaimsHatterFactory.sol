@@ -134,6 +134,7 @@ contract ClaimsHatterFactory {
 
   /**
    * @notice Calculates the salt to use when deploying the clone. The (packed) inputs are:
+   *  - The address of this contract, `FACTORY` (passed as part of `_args`)
    *  - The address of the Hats Protocol contract, `HATS` (passed as part of `_args`)
    *  - The`_hatId` (passed as part of `_args`)
    *  - The chain ID of the current network, to avoid confusion across networks since the same hat trees
