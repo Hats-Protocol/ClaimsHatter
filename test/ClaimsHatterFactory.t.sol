@@ -31,7 +31,7 @@ contract ClaimsHatterFactoryTest is Test, DeployFactory {
     fork = vm.createSelectFork(vm.rpcUrl("mainnet"), 16_947_805);
 
     // deploy the clone factory and the implementation contract
-    DeployFactory.prepare(VERSION);
+    DeployFactory.prepare(VERSION, false); // set verbose to true to log the deployed addresses
     DeployFactory.run();
   }
 }

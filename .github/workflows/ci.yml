@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  FOUNDRY_PROFILE: lite
+  FOUNDRY_PROFILE: ci
   INFURA_KEY: ${{ secrets.INFURA_KEY }}
   ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
   GC_RPC: ${{ secrets.GC_RPC }}
@@ -50,6 +50,10 @@ jobs:
         run: forge test -vvv
 
   coverage:
+
+    env:
+      FOUNDRY_PROFILE: ci
+      
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

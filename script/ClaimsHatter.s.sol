@@ -9,12 +9,17 @@ import { ClaimsHatterFactory } from "src/ClaimsHatterFactory.sol";
 contract DeployFactory is Script {
   ClaimsHatterFactory factory;
   ClaimsHatter implementation;
-  string public version = "0.3.0"; // increment with each deploy
   IHats public constant hats = IHats(0x9D2dfd6066d5935267291718E8AA16C8Ab729E9d); // v1.hatsprotocol.eth
   bytes32 internal constant SALT = bytes32(abi.encode(0x4a75)); // ~ H(4) A(a) T(7) S(5)
 
-  function prepare(string memory _version) public {
+  // variables with defaul values
+  string public version = "0.3.0"; // increment with each deploy
+  bool verbose = true;
+
+  /// @notice Overrides default values
+  function prepare(string memory _version, bool _verbose) public {
     version = _version;
+    verbose = _verbose;
   }
 
   function run() public {
@@ -28,8 +33,10 @@ contract DeployFactory is Script {
     factory = new ClaimsHatterFactory{ salt: SALT }(implementation, hats, version);
     vm.stopBroadcast();
 
-    console2.log("implementation", address(implementation));
-    console2.log("factory", address(factory));
+    if (verbose) {
+      console2.log("implementation", address(implementation));
+      console2.log("factory", address(factory));
+    }
   }
   // forge script script/ClaimsHatter.s.sol:DeployFactory -f mainnet --broadcast --verify
 }
