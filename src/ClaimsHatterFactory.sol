@@ -11,7 +11,8 @@ contract ClaimsHatterFactory {
                             CUSTOM ERRORS
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice Emitted if attempting to deploy a ClaimsHatter for a hat `hatId` that already has a ClaimsHatter deployment
+  /// @notice Emitted if attempting to deploy a ClaimsHatter for a hat `hatId` that already has a ClaimsHatter
+  /// deployment
   error ClaimsHatterFactory_AlreadyDeployed(uint256 hatId);
 
   /*//////////////////////////////////////////////////////////////
@@ -51,9 +52,11 @@ contract ClaimsHatterFactory {
   //////////////////////////////////////////////////////////////*/
 
   /**
-   * @notice Deploys a new ClaimsHatter instance for a given `_hatId` to a deterministic address, if not already deployed
+   * @notice Deploys a new ClaimsHatter instance for a given `_hatId` to a deterministic address, if not already
+   * deployed
    * @dev Anyone can deploy a ClaimsHatter instance for a hat.
-   *  To make a hat claimable, the ClaimsHatter instance must wear an admin hat of `_hatId`, which only an admin of `_hatId` can do.
+   *  To make a hat claimable, the ClaimsHatter instance must wear an admin hat of `_hatId`, which only an admin of
+   * `_hatId` can do.
    * @param _hatId The hat for which to deploy a ClaimsHatter
    * @return _instance The address of the deployed ClaimsHatter instance
    */
@@ -134,6 +137,7 @@ contract ClaimsHatterFactory {
 
   /**
    * @notice Calculates the salt to use when deploying the clone. The (packed) inputs are:
+   *  - The address of this contract, `FACTORY` (passed as part of `_args`)
    *  - The address of the Hats Protocol contract, `HATS` (passed as part of `_args`)
    *  - The`_hatId` (passed as part of `_args`)
    *  - The chain ID of the current network, to avoid confusion across networks since the same hat trees

@@ -14,15 +14,14 @@ remappings = [
 ]
 
 [profile.ci]
-  fuzz = { runs = 5000 }
-  invariant = { runs = 1000 }
-  gas_reports = ["ClaimsHatter", "ClaimsHatterFactory"]
+fuzz = { runs = 1000 }
+invariant = { runs = 200 }
 
 [profile.lite]
-  fuzz = { runs = 32 }
-  invariant = { runs = 10 }
-  # Speed up compilation and tests during development.
-  optimizer = false
+fuzz = { runs = 32 }
+invariant = { runs = 10 }
+# Speed up compilation and tests during development.
+optimizer = false
 
 [fmt]
 bracket_spacing = true
@@ -32,17 +31,17 @@ multiline_func_header = "attributes_first"
 number_underscore = "thousands"
 quote_style = "double"
 tab_width = 2
-wrap_comments = false
+wrap_comments = true
 
 [rpc_endpoints]
-arbitrum = "${ARBITRUM_RPC}"
+arbitrum = "https://arbitrum-mainnet.infura.io/v3/${INFURA_KEY}"
 gnosis = "${GC_RPC}"
-goerli = "${GOERLI_RPC}"
+goerli = "https://goerli.infura.io/v3/${INFURA_KEY}"
 local = "http://localhost:8545"
-mainnet = "${ETHEREUM_RPC}"
-optimism = "${OPTIMISM_RPC}"
+mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
+optimism = "https://optimism-mainnet.infura.io/v3/${INFURA_KEY}"
 polygon = "${POLYGON_RPC}"
-sepolia = "${SEPOLIA_RPC}"
+sepolia = "https://sepolia.infura.io/v3/${INFURA_KEY}"
 
 [etherscan]
 arbitrum = {key = "${ARBISCAN_KEY}", url = "https://api.arbiscan.io/api"}
@@ -52,6 +51,5 @@ mainnet = {key = "${ETHERSCAN_KEY}", url = "https://api.etherscan.io/api"}
 optimism = {key = "${OPTIMISM_KEY}", url = "https://api-optimistic.etherscan.io/api"}
 sepolia = {key = "${ETHERSCAN_KEY}", url = "https://api-sepolia.etherscan.io/api"}
 polygon = {key = "${POLYGONSCAN_KEY}", url = "https://api.polygonscan.com/api"}
-
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

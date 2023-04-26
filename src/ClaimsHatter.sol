@@ -141,7 +141,8 @@ contract ClaimsHatter is Clone {
 
   /**
    * @notice Claim the hat for an explicitly eligible wearer
-   * @dev claimingFor must be allowed. This contract must also wear an admin hat of the claimed hat, or the claim will fail.
+   * @dev claimingFor must be allowed. This contract must also wear an admin hat of the claimed hat, or the claim will
+   * fail.
    * @param _wearer The address on whose behalf to claim the hat
    */
   function claimHatFor(address _wearer) external {
@@ -166,7 +167,8 @@ contract ClaimsHatter is Clone {
 
   /**
    * @notice Checks if _wearer is explicitly eligible to wear the hat.
-   * @dev Explicit eligibility can only come from a mechanistic eligitibility module, ie a contract that implements IHatsEligibility
+   * @dev Explicit eligibility can only come from a mechanistic eligitibility module, ie a contract that implements
+   * IHatsEligibility
    * @param _wearer The address of the would-be wearer to check for eligibility
    */
   function _isExplicitlyEligible(address _wearer) internal view returns (bool eligible) {
@@ -180,7 +182,8 @@ contract ClaimsHatter is Clone {
     /* 
     * if function call succeeds with data of length == 64, then we know the contract exists 
     * and has the getWearerStatus function (which returns two words).
-    * But — since function selectors don't include return types — we still can't assume that the return data is two booleans, 
+    * But — since function selectors don't include return types — we still can't assume that the return data is two
+    booleans, 
     * so we treat it as a uint so it will always safely decode without throwing.
     */
     if (success && returndata.length == 64) {

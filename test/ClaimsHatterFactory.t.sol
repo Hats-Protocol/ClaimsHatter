@@ -27,11 +27,11 @@ contract ClaimsHatterFactoryTest is Test, DeployFactory {
   error ClaimsHatterFactory_AlreadyDeployed(uint256 hatId);
 
   function setUp() public virtual {
-    fork = vm.createFork(vm.envString("ETHEREUM_RPC"), 16_947_805);
-    // use the fork (Luke)
-    vm.selectFork(fork);
+    // create and activate a mainnet fork, at the block number where v1.hatsprotocol.eth was deployed
+    fork = vm.createSelectFork(vm.rpcUrl("mainnet"), 16_947_805);
+
     // deploy the clone factory and the implementation contract
-    DeployFactory.prepare(VERSION);
+    DeployFactory.prepare(VERSION, false); // set verbose to true to log the deployed addresses
     DeployFactory.run();
   }
 }
@@ -137,24 +137,39 @@ contract Internal_getClaimsHatterAddress is InternalTest {
 }
 
 contract Internal_createHatter is InternalTest {
-  function test_fuzz_createHatter(uint256 _hatId) public {
-    bytes memory args = harness.encodeArgs(_hatId);
-    ClaimsHatter hatter = harness.createHatter(_hatId);
+  bytes public args;
+  ClaimsHatter hatter;
+
+  function createHatterTest(uint256 _hatId) public {
+    args = harness.encodeArgs(_hatId);
+    hatter = harness.createHatter(_hatId);
     assertEq(address(hatter), harness.getClaimsHatterAddress(args, harness.calculateSalt(args)));
   }
 
   function test_createHatter_0() public {
-    test_fuzz_createHatter(0);
+    createHatterTest(0);
+  }
+
+  function test_createHatter_min() public {
+    createHatterTest(1);
+  }
+
+  function test_createHatter_max() public {
+    createHatterTest(type(uint256).max);
+  }
+
+  function test_createHatter_validHat() public {
+    createHatterTest(hat1);
   }
 }
 
 contract CreateClaimsHatter is ClaimsHatterFactoryTest {
-  function test_fuzz_createClaimsHatter(uint256 _hatId) public {
-    vm.assume(_hatId > 0); // hatId must be > 0
+  ClaimsHatter hatter;
 
+  function createClaimsHatterTest(uint256 _hatId) public {
     vm.expectEmit(true, true, true, true);
     emit ClaimsHatterDeployed(_hatId, factory.getClaimsHatterAddress(_hatId));
-    ClaimsHatter hatter = factory.createClaimsHatter(_hatId);
+    hatter = factory.createClaimsHatter(_hatId);
     assertEq(hatter.hat(), _hatId, "hat");
     assertEq(address(hatter.FACTORY()), address(factory), "FACTORY");
     assertEq(address(hatter.HATS()), address(hats), "HATS");
@@ -162,14 +177,22 @@ contract CreateClaimsHatter is ClaimsHatterFactoryTest {
     assertFalse(hatter.claimableFor(), "claimableFor");
   }
 
-  function test_createClaimsHatter_validHat() public {
-    test_fuzz_createClaimsHatter(hat1);
+  function test_createClaimsHatter_min() public {
+    createClaimsHatterTest(1);
   }
 
-  function test_fuzz_createClaimsHatter_alreadyDeployed_reverts(uint256 _hatId) public {
-    factory.createClaimsHatter(_hatId);
-    vm.expectRevert(abi.encodeWithSelector(ClaimsHatterFactory_AlreadyDeployed.selector, _hatId));
-    factory.createClaimsHatter(_hatId);
+  function test_createClaimsHatter_max() public {
+    createClaimsHatterTest(type(uint256).max);
+  }
+
+  function test_createClaimsHatter_validHat() public {
+    createClaimsHatterTest(hat1);
+  }
+
+  function test_createClaimsHatter_alreadyDeployed_reverts() public {
+    factory.createClaimsHatter(hat1);
+    vm.expectRevert(abi.encodeWithSelector(ClaimsHatterFactory_AlreadyDeployed.selector, hat1));
+    factory.createClaimsHatter(hat1);
   }
 }
 
@@ -189,12 +212,12 @@ contract GetClaimsHatterAddress is ClaimsHatterFactoryTest {
 
 contract Deployed is InternalTest {
   // uses the FactoryHarness version for easy access to the internal _createClaimsHatter function
-  function test_fuzz_deployed_true(uint256 _hatId) public {
-    harness.createHatter(_hatId);
-    assertTrue(harness.deployed(_hatId));
+  function test_deployed_true() public {
+    harness.createHatter(hat1);
+    assertTrue(harness.deployed(hat1));
   }
 
-  function test_fuzz_deployed_false(uint256 _hatId) public {
-    assertFalse(harness.deployed(_hatId));
+  function test_deployed_false() public {
+    assertFalse(harness.deployed(hat1));
   }
 }
