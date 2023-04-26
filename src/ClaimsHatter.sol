@@ -137,6 +137,7 @@ contract ClaimsHatter is Clone {
    */
   function claimHat() external {
     _mint(msg.sender);
+    console2.log("lets spend some gas, baby!");
   }
 
   /**
