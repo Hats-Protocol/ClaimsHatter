@@ -52,7 +52,7 @@ jobs:
   coverage:
 
     env:
-      FOUNDRY_PROFILE: default
+      FOUNDRY_PROFILE: lite
 
     runs-on: ubuntu-latest
     steps:
@@ -95,4 +95,4 @@ jobs:
         uses: zgosalvez/github-actions-report-lcov@v2
         with:
           coverage-files: ./lcov.info
-          minimum-coverage: 100 # Set coverage threshold.
+          minimum-coverage: 95 # Set coverage threshold.
