@@ -161,7 +161,6 @@ contract Internal_createHatter is InternalTest {
   function test_createHatter_validHat() public {
     createHatterTest(hat1);
   }
-
 }
 
 contract CreateClaimsHatter is ClaimsHatterFactoryTest {
