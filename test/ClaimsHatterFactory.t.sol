@@ -28,7 +28,7 @@ contract ClaimsHatterFactoryTest is Test, DeployFactory {
 
   function setUp() public virtual {
     // create and activate a mainnet fork, at the block number where v1.hatsprotocol.eth was deployed
-    fork = vm.createSelectFork(vm.rpcUrl("mainnet"), 16_947_805);
+    fork = vm.createSelectFork(vm.rpcUrl("mainnet"), 17_671_864);
 
     // deploy the clone factory and the implementation contract
     DeployFactory.prepare(VERSION, false); // set verbose to true to log the deployed addresses
