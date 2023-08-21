@@ -5,10 +5,31 @@ import { Test, console2 } from "forge-std/Test.sol";
 import { ClaimsHatter } from "src/ClaimsHatter.sol";
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
 import { HatsErrors } from "hats-protocol/Interfaces/HatsErrors.sol";
-import { ClaimsHatterFactoryTest } from "test/ClaimsHatterFactory.t.sol";
 import { LibClone } from "solady/utils/LibClone.sol";
+import { Deploy } from "../script/ClaimsHatter.s.sol";
+import { HatsModuleFactory, deployModuleInstance } from "lib/hats-module/src/utils/DeployFunctions.sol";
 
-contract ClaimsHatterTest is ClaimsHatterFactoryTest {
+contract ClaimsHatterTestSetup is Test, Deploy {
+  uint256 public fork;
+  uint256 public topHat1 = 0x0000000100000000000000000000000000000000000000000000000000000000;
+  uint256 public hat1 = 0x0000000100010000000000000000000000000000000000000000000000000000;
+  bytes32 maxBytes32 = bytes32(type(uint256).max);
+  bytes largeBytes = abi.encodePacked("this is a fairly large bytes object");
+  string public constant VERSION = "this is a test";
+  IHats public constant hats = IHats(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137); // v1.hatsprotocol.eth
+  HatsModuleFactory constant factory = HatsModuleFactory(0xEcb86bAB1E2494Dd3C4bcE4d0528842E226A869c);
+
+  function setUp() public virtual {
+    // create and activate a goerli fork, at the block number where hats module factory was deployed
+    fork = vm.createSelectFork(vm.rpcUrl("goerli"), 9_550_399);
+
+    // deploy the implementation contract
+    Deploy.prepare(VERSION, false); // set verbose to true to log the deployed address
+    Deploy.run();
+  }
+}
+
+contract ClaimsHatterTest is ClaimsHatterTestSetup {
   ClaimsHatter hatter;
   address public admin1;
   address public claimer1;
@@ -42,7 +63,7 @@ contract ClaimsHatterTest is ClaimsHatterFactoryTest {
     // derive id of claimHat1
     claimerHat1 = hats.buildHatId(hatterHat1, 1);
     // deploy an instance from the factory, for claimerHat1
-    hatter = factory.createClaimsHatter(claimerHat1);
+    hatter = ClaimsHatter(deployModuleInstance(factory, address(implementation), claimerHat1, "", ""));
     vm.stopPrank();
   }
 
@@ -71,10 +92,6 @@ contract ClaimsHatterHarness is ClaimsHatter {
 
   function isExplicitlyEligible(address _wearer) public view returns (bool) {
     return _isExplicitlyEligible(_wearer);
-  }
-
-  function checkOnlyAdminOrFactory() public view onlyAdminOrFactory returns (bool) {
-    return true;
   }
 
   function checkOnlyAdmin() public view onlyAdmin returns (bool) {
@@ -140,24 +157,6 @@ contract _Mint is InternalTest {
   }
 }
 
-contract _OnlyAdminOrFactory is InternalTest {
-  function test_forAdmin_returnsTrue() public {
-    vm.prank(admin1);
-    assertTrue(harness.checkOnlyAdminOrFactory());
-  }
-
-  function test_forFactory_returnsTrue() public {
-    vm.prank(address(this)); // this contract served as the factory for the harness
-    assertTrue(harness.checkOnlyAdminOrFactory());
-  }
-
-  function test_forNonAdminOrFactory_reverts() public {
-    vm.prank(claimer1); // claimer does not wear the admin hat (top hat)
-    vm.expectRevert(ClaimsHatter_NotHatAdmin.selector);
-    harness.checkOnlyAdminOrFactory();
-  }
-}
-
 contract _onlyAdmin is InternalTest {
   function test_forAdmin_returnsTrue() public {
     vm.prank(admin1);
@@ -171,12 +170,11 @@ contract _onlyAdmin is InternalTest {
   }
 }
 
-contract Deploy is ClaimsHatterTest {
+contract DeployTest is ClaimsHatterTest {
   function test_deploy() public {
     assertEq(hatter.version(), VERSION);
-    assertEq(hatter.hat(), claimerHat1);
+    assertEq(hatter.hatId(), claimerHat1);
     assertEq(address(hatter.HATS()), address(hats));
-    assertEq(address(hatter.FACTORY()), address(factory));
   }
 }
 

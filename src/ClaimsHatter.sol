@@ -2,15 +2,14 @@
 pragma solidity ^0.8.18;
 
 // import { console2 } from "forge-std/Test.sol"; // remove before deploy
-import { ClaimsHatterFactory } from "src/ClaimsHatterFactory.sol";
 import { IHats } from "hats-protocol/Interfaces/IHats.sol";
-import { Clone } from "solady/utils/Clone.sol";
+import { HatsModule } from "hats-module/HatsModule.sol";
 
 /// @title ClaimsHatter
 /// @author Haberdasher Labs
 /// @notice Enables explicitly eligible wearers to self-mint (claim) a Hats Protocol hat
 /// @dev To function properly, this contract must wear an admin hat of the hat to be claimed
-contract ClaimsHatter is Clone {
+contract ClaimsHatter is HatsModule {
   /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
   //////////////////////////////////////////////////////////////*/
@@ -39,46 +38,20 @@ contract ClaimsHatter is Clone {
    * regular storage variables (such as those set on initialization of a typical EIP-1167 clone),
    * but requires a slightly different approach since they are read from calldata instead of storage.
    *
-   * Below is a table of constants and their location.
+   * Below is a table of constants and their locations. In this module, all are inherited from HatsModule.
    *
    * For more, see here: https://github.com/Saw-mon-and-Natalie/clones-with-immutable-args
    *
    * --------------------------------------------------------------------+
    * CLONE IMMUTABLE "STORAGE"                                           |
    * --------------------------------------------------------------------|
-   * Offset  | Constant | Type    | Length  |                            |
+   * Offset  | Constant        | Type    | Length  | Source Contract     |
    * --------------------------------------------------------------------|
-   * 0       | FACTORY  | address | 20      |                            |
-   * 20      | HATS     | address | 20      |                            |
-   * 40      | hat      | uint256 | 32      |                            |
+   * 0       | IMPLEMENTATION  | address | 20      | HatsModule          |
+   * 20      | HATS            | address | 20      | HatsModule          |
+   * 40      | hatId           | uint256 | 32      | HatsModule          |
    * --------------------------------------------------------------------+
    */
-
-  /// @notice The address of the ClaimsHatterFactory that deployed this contract
-  function FACTORY() public pure returns (ClaimsHatterFactory) {
-    return ClaimsHatterFactory(_getArgAddress(0));
-  }
-
-  /// @notice Hats Protocol address
-  function HATS() public pure returns (IHats) {
-    return IHats(_getArgAddress(20));
-  }
-
-  /// @notice The hat claimable via this contract
-  function hat() public pure returns (uint256) {
-    return _getArgUint256(40);
-  }
-
-  ///
-  string internal _version;
-
-  /// @notice The version of this ClaimsHatter
-  function version() public view returns (string memory version_) {
-    // If the factory is set (ie this is a clone), use its version
-    if (address(FACTORY()) != address(0)) return FACTORY().version();
-    // Otherwise (ie this is the implementation contract), use the version from storage
-    else return _version;
-  }
 
   /*//////////////////////////////////////////////////////////////
                             MUTABLE STATE
@@ -93,9 +66,7 @@ contract ClaimsHatter is Clone {
 
   /// @notice Deploy the ClaimsHatter implementation contract and set its `_version`
   /// @dev This is only used to deploy the implementation contract, and should not be used to deploy clones
-  constructor(string memory __version) {
-    _version = __version;
-  }
+  constructor(string memory _version) HatsModule(_version) { }
 
   /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
@@ -108,11 +79,11 @@ contract ClaimsHatter is Clone {
    *  If this contract is NOT an admin of the hat, it will not be able to mint it when claimed.
    *  To make this contract an admin of the hat, mint it an admin hat.
    */
-  function enableClaimingFor() external onlyAdminOrFactory {
+  function enableClaimingFor() external onlyAdmin {
     // enable anybody to claim _hatId for an explicitly eligible wearer
     _claimableFor = true;
     // log the change
-    emit ClaimingForChanged(hat(), true);
+    emit ClaimingForChanged(hatId(), true);
   }
 
   /**
@@ -123,7 +94,7 @@ contract ClaimsHatter is Clone {
     // disable anybody from claiming _hatId for an explicitly eligible wearer
     _claimableFor = false;
     // log the change
-    emit ClaimingForChanged(hat(), false);
+    emit ClaimingForChanged(hatId(), false);
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -162,7 +133,7 @@ contract ClaimsHatter is Clone {
     // revert if _wearer is not explicitly eligible
     if (!_isExplicitlyEligible(_wearer)) revert ClaimsHatter_NotExplicitlyEligible();
     // mint the hat to _wearer if eligible. This contract can mint as long as its the hat's admin.
-    HATS().mintHat(hat(), _wearer);
+    HATS().mintHat(hatId(), _wearer);
   }
 
   /**
@@ -173,11 +144,11 @@ contract ClaimsHatter is Clone {
    */
   function _isExplicitlyEligible(address _wearer) internal view returns (bool eligible) {
     // get the hat's eligibility module address
-    address eligibility = HATS().getHatEligibilityModule(hat());
+    address eligibility = HATS().getHatEligibilityModule(hatId());
     // get _wearer's eligibility status from the eligibility module
     bool standing;
     (bool success, bytes memory returndata) =
-      eligibility.staticcall(abi.encodeWithSignature("getWearerStatus(address,uint256)", _wearer, hat()));
+      eligibility.staticcall(abi.encodeWithSignature("getWearerStatus(address,uint256)", _wearer, hatId()));
 
     /* 
     * if function call succeeds with data of length == 64, then we know the contract exists 
@@ -234,31 +205,21 @@ contract ClaimsHatter is Clone {
 
   /// @notice Whether this contract wears an admin hat of the hat to claim
   function wearsAdmin() public view returns (bool) {
-    return HATS().isAdminOfHat(address(this), hat());
+    return HATS().isAdminOfHat(address(this), hatId());
   }
 
   /// @notice Whether the hat to claim exists
   function hatExists() public view returns (bool) {
-    return HATS().getHatMaxSupply(hat()) > 0;
+    return HATS().getHatMaxSupply(hatId()) > 0;
   }
 
   /*//////////////////////////////////////////////////////////////
                             MODIFIERS
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice Ensure caller is either an admin of the hat, or the factory that deployed this contract
-  /// @dev If the factory is the caller, the caller of *that* function must have been an admin of the hat
-  modifier onlyAdminOrFactory() {
-    if (!HATS().isAdminOfHat(msg.sender, hat()) && msg.sender != address(FACTORY())) {
-      // Only admins can call via the factory, so this error is always relevant
-      revert ClaimsHatter_NotHatAdmin();
-    }
-    _;
-  }
-
   /// @notice Ensure caller is an admin of the hat
   modifier onlyAdmin() {
-    if (!HATS().isAdminOfHat(msg.sender, hat())) revert ClaimsHatter_NotHatAdmin();
+    if (!HATS().isAdminOfHat(msg.sender, hatId())) revert ClaimsHatter_NotHatAdmin();
     _;
   }
 }
