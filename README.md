@@ -51,9 +51,10 @@ Second, the hat to claim must have a [mechanistic eligibility module](https://gi
 
 ### Step 1: Create a new instance of ClaimsHatter for the hat to claim
 
-New instances of ClaimsHatter are deployed via the [ClaimsHatterFactory](./src/ClaimsHatterFactory.sol).
+New instances of ClaimsHatter are deployed via the [HatsModuleFactory](https://github.com/Hats-Protocol/hats-module/blob/main/src/HatsModuleFactory.sol), by using the `createHatsModule` function.
+HatsModuleFactory is a clone factory that enables cheap creation of new module instances. The address of each instance is unique to the hat to claim (one ClaimsHatter per hat), and is deterministically generated.
 
-ClaimsHatterFactory is a clone factory that enables cheap creation of new instances. The address of each instance is unique to the hat to claim (one ClaimsHatter per hat), and is deterministically generated.
+Note that ClaimsHatter doesn't use initailization data or additional immutable arguments and so the `_otherImmutableArgs` and `_initData` parameters for the `createHatsModule` function should be empty.
 
 ### Step 2: Mint or transfer an admin hat of the claimable hat to the ClaimsHatter instance
 
@@ -69,7 +70,7 @@ Once steps 0-2 have been completed, explicitly eligible wearers can now claim th
 
 In some cases, it may be desirable to allow a third party — such as a bot network — to claim a hat on behalf of a wearer. DAOs can optionally enable "claiming for" by calling the `enableClaimingFor` function.
 
-Once enabled, anybody can then claim on behalf of an eligible wearer by calling the `claimFor` function, with the desired where as an argument.
+Once enabled, anybody can then claim on behalf of an eligible wearer by calling the `claimFor` function, with the desired wearer as an argument.
 
 ## Development
 
