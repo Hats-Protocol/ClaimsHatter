@@ -337,7 +337,7 @@ contract ClaimableFromInitClaimFor is HatCreatedClaimableForTest {
     vm.prank(admin1);
   }
 
-  function test_eligibleWearer_canBeClaimedFor() public {
+  function test_eligibleWearer_canBeClaimedFor_fromInit() public {
     // mock explicitly eligibility for claimer1
     mockEligibityCall(claimer1, claimerHat1, true, true);
     // attempt the claim from another address, expecting a transfer event when minted
@@ -349,7 +349,7 @@ contract ClaimableFromInitClaimFor is HatCreatedClaimableForTest {
     assertTrue(hats.isWearerOfHat(claimer1, claimerHat1));
   }
 
-  function test_ineligibleWearer_cannotBeClaimedFor() public {
+  function test_ineligibleWearer_cannotBeClaimedFor_fromInit() public {
     // attempt the claim from another address, expecting a revert
     vm.prank(bot);
     vm.expectRevert(ClaimsHatter_NotExplicitlyEligible.selector);
@@ -364,7 +364,7 @@ contract ClaimableFromInitClaimFor is HatCreatedClaimableForTest {
     hatter.claimHatFor(claimer1);
   }
 
-  function test_eligibleWearer_notClaimableFor_cannotBeClaimedFor() public {
+  function test_eligibleWearer_notClaimableFor_cannotBeClaimedFor_fromInit() public {
     // disable claiming for
     vm.prank(admin1);
     hatter.disableClaimingFor();
