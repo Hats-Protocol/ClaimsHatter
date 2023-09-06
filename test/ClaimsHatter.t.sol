@@ -333,8 +333,6 @@ contract ClaimableFromInitClaimFor is HatCreatedClaimableForTest {
     // mint hatterHat1 to hatter
     vm.prank(admin1);
     hats.mintHat(hatterHat1, address(hatter));
-    // enable claiming for
-    vm.prank(admin1);
   }
 
   function test_eligibleWearer_canBeClaimedFor_fromInit() public {
