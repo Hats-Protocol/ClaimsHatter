@@ -62,9 +62,12 @@ contract ClaimsHatterTest is ClaimsHatterTestSetup {
     hatterHat1 = hats.createHat(topHat1, "hatterHat1", 2, address(1), address(1), true, "");
     // derive id of claimHat1
     claimerHat1 = hats.buildHatId(hatterHat1, 1);
-    // deploy an instance from the factory, for claimerHat1
-    hatter = ClaimsHatter(deployModuleInstance(factory, address(implementation), claimerHat1, "", ""));
     vm.stopPrank();
+  }
+
+  function deployClaimsHatter(bool claimableFor) public {
+    bytes memory initData = abi.encode(claimableFor);
+    hatter = ClaimsHatter(deployModuleInstance(factory, address(implementation), claimerHat1, "", initData));
   }
 
   /// @notice Mocks a call to the eligibility contract for `wearer` and `hat` that returns `eligible` and `standing`
@@ -77,6 +80,17 @@ contract ClaimsHatterTest is ClaimsHatterTestSetup {
 contract HatCreatedTest is ClaimsHatterTest {
   function setUp() public virtual override {
     super.setUp();
+    super.deployClaimsHatter(false);
+    // create claimerHat1 with good eligibility module
+    vm.prank(admin1);
+    claimerHat1 = hats.createHat(hatterHat1, "claimerHat1", 2, eligibility, address(1), true, "");
+  }
+}
+
+contract HatCreatedClaimableForTest is ClaimsHatterTest {
+  function setUp() public virtual override {
+    super.setUp();
+    super.deployClaimsHatter(true);
     // create claimerHat1 with good eligibility module
     vm.prank(admin1);
     claimerHat1 = hats.createHat(hatterHat1, "claimerHat1", 2, eligibility, address(1), true, "");
@@ -171,6 +185,11 @@ contract _onlyAdmin is InternalTest {
 }
 
 contract DeployTest is ClaimsHatterTest {
+  function setUp() public virtual override {
+    super.setUp();
+    super.deployClaimsHatter(false);
+  }
+
   function test_deploy() public {
     assertEq(hatter.version(), VERSION);
     assertEq(hatter.hatId(), claimerHat1);
@@ -257,7 +276,7 @@ contract Claim is HatCreatedTest {
   }
 }
 
-contract ClaimFor is HatCreatedTest {
+contract MakeClaimableAndClaimFor is HatCreatedTest {
   function setUp() public override {
     super.setUp();
     // mint hatterHat1 to hatter
@@ -308,7 +327,62 @@ contract ClaimFor is HatCreatedTest {
   }
 }
 
+contract ClaimableFromInitClaimFor is HatCreatedClaimableForTest {
+  function setUp() public override {
+    super.setUp();
+    // mint hatterHat1 to hatter
+    vm.prank(admin1);
+    hats.mintHat(hatterHat1, address(hatter));
+    // enable claiming for
+    vm.prank(admin1);
+  }
+
+  function test_eligibleWearer_canBeClaimedFor() public {
+    // mock explicitly eligibility for claimer1
+    mockEligibityCall(claimer1, claimerHat1, true, true);
+    // attempt the claim from another address, expecting a transfer event when minted
+    vm.prank(bot);
+    vm.expectEmit(true, true, true, true);
+    emit TransferSingle(address(hatter), address(0), address(claimer1), claimerHat1, 1);
+    hatter.claimHatFor(claimer1);
+    // claimer1 should now wear claimerHat1
+    assertTrue(hats.isWearerOfHat(claimer1, claimerHat1));
+  }
+
+  function test_ineligibleWearer_cannotBeClaimedFor() public {
+    // attempt the claim from another address, expecting a revert
+    vm.prank(bot);
+    vm.expectRevert(ClaimsHatter_NotExplicitlyEligible.selector);
+    hatter.claimHatFor(claimer1);
+
+    // this should also happen if the wearer is explicitly ineligible
+    // mock explicit ineligibility for claimer1
+    mockEligibityCall(claimer1, claimerHat1, false, true);
+    // attempt the claim from another address, expecting a revert
+    vm.prank(bot);
+    vm.expectRevert(ClaimsHatter_NotExplicitlyEligible.selector);
+    hatter.claimHatFor(claimer1);
+  }
+
+  function test_eligibleWearer_notClaimableFor_cannotBeClaimedFor() public {
+    // disable claiming for
+    vm.prank(admin1);
+    hatter.disableClaimingFor();
+    // mock explicitly eligibility for claimer1
+    mockEligibityCall(claimer1, claimerHat1, true, true);
+    // attempt the claim from another address, expecting a revert
+    vm.prank(bot);
+    vm.expectRevert(ClaimsHatter_NotClaimableFor.selector);
+    hatter.claimHatFor(claimer1);
+  }
+}
+
 contract ViewFunctions is ClaimsHatterTest {
+  function setUp() public virtual override {
+    super.setUp();
+    super.deployClaimsHatter(false);
+  }
+
   function test_wearsAdmin() public {
     // claimable starts out as false since hatter does not yet wear hatterHat1
     assertFalse(hatter.wearsAdmin());
