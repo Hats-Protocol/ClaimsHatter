@@ -61,6 +61,24 @@ contract ClaimsHatter is HatsModule {
   bool internal _claimableFor;
 
   /*//////////////////////////////////////////////////////////////
+                            INITIALIZER
+    //////////////////////////////////////////////////////////////*/
+
+  /**
+   * @notice Sets up this instance with initial operational values
+   * @param _initData Packed initialization data with the following parameters:
+   *  initClaimableFor - If true, this hat will be claimable on behalf of an explicitly eligible wearer. Otherwise, it
+   * will be claimable only by the receiver, unless the enableClaimingFor function will be called.
+   */
+  function _setUp(bytes calldata _initData) internal override {
+    bool initClaimableFor = abi.decode(_initData, (bool));
+    if (initClaimableFor) {
+      _claimableFor = true;
+      emit ClaimingForChanged(hatId(), true);
+    }
+  }
+
+  /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
   //////////////////////////////////////////////////////////////*/
 
